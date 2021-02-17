@@ -54,7 +54,7 @@ def gradient_200(weights, dev):
     double_plus = np.zeros(p)
     double_minus = np.zeros(p)
     for i in range(p):
-        for j in range(i,p):
+        for j in range(i+1,p):
             hessian[i,j] = ((circuit(w+s*e[i]+s*e[j]) - circuit(w+s*e[i]-s*e[j])) - 
                             (circuit(w-s*e[i]+s*e[j]) - circuit(w-s*e[i]-s*e[j]))
                            ) / (2*np.sin(s))**2
