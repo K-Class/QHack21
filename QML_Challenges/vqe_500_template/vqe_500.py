@@ -62,9 +62,9 @@ def find_excited_states(H):
 
     print(H.wires)
 
-    for i in range(400):
-        if i % 10: print(f"step {i}, E_0 {cost0(params)}")
-        params = opt.step(cost0, params)  
+    #for i in range(400):
+    #    if i % 10: print(f"step {i}, E_0 {cost0(params)}")
+    #    params = opt.step(cost0, params)  
 
     energies[0] = cost0(params)
     saved_params.append(params)
@@ -75,15 +75,20 @@ def find_excited_states(H):
         variational_ansatz(params, wires)
 
     @qml.qnode(dev)
-    def overlap(params1, params2, wires):
-        variational_ansatz(params1, wires)
-        qml.inv(va_template(params2, wires))
-        return qml.probs(wires=wires)
+    def overlap(params1, params2):
+        variational_ansatz(params1, dev.wires)
+        qml.inv(va_template(params2, dev.wires))
+        return qml.probs(wires=[0,1,2])
+
+    # test 
+    #print(overlap(params, params))#, dev.wires))
+
+    opt = qml.RotosolveOptimizer()
 
     # find the first excited
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
     a = 1e6 # big number to enforce orthogonality
-    cost = qml.ExpvalCost(variational_ansatz, H, dev) - a*overlap(params,saved_params[0],H.wires)[0]
+    cost = qml.ExpvalCost(variational_ansatz, H, dev) - a*overlap(params,saved_params[0])[0]
 
     for i in range(400):
         if i % 10: print(f"step {i}, E_1 {cost0(params)}, cost {cost(params)}")
@@ -95,7 +100,7 @@ def find_excited_states(H):
     # find the second excited    
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
     b = 1e6
-    cost = qml.ExpvalCost(variational_ansatz, H, dev) - a*overlap(params, saved_params[0],H.wires) - b*overlap(params, saved_params[1], H.wires)
+    cost = qml.ExpvalCost(variational_ansatz, H, dev) - a*overlap(params, saved_params[0]) - b*overlap(params, saved_params[1])
 
     for i in range(400):
         if i % 10: print(f"step {i}, E_2 {cost0(params)}, cost {cost(params)}")
