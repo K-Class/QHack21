@@ -35,16 +35,34 @@ def natural_gradient(params):
     e = np.eye(6)
     F = np.zeros((6,6))
 
+    @qml.template
+    def tcircuit(p):
+        variational_circuit(p)
+
+    @qml.qnode(dev)
+    def circuit(params1,params2):
+        variational_circuit(params1)
+        qml.inv(tcircuit(params2))
+        return qml.probs(wires=[0,1,2])
+        #return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1) @ qml.PauliZ(2))
+
+    met_fn = qml.metric_tensor(qnode)
+    print(met_fn(params))
+
     for i in range(6):
         for j in range(6):
-            shifted = qml.QNode(variational_circuit(params+np.pi/2*(e[i]+e[j]), dev)
+            F[i,j] = -circuit(params+np.pi/2*(e[i]+e[j]),params)[0]+circuit(params+np.pi/2*(e[i]-e[j]),params)[0]+circuit(params+np.pi/2*(-e[i]+e[j]),params)[0]-circuit(params-np.pi/2*(e[i]+e[j]),params)[0]
             # ? return < shifted | qnode >
+    #print(circuit(params+np.pi/2*(e[i]+e[j]),params))
+
+    print(F)
+    quit() 
 
     s = np.pi/2
     for i in range(6):
         gradient = ( qnode(params + s*e[i]) - qnode(params - s*e[i])) / (2*np.sin(s))
 
-    natural_grad = (1/8.)*np.linalg.inv(F)@gradient
+    natural_grad = np.linalg.inv((1/8.)*F)@gradient
 
     # QHACK #
 
