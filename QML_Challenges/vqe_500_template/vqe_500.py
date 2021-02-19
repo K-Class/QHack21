@@ -54,6 +54,7 @@ def find_excited_states(H):
             # For 1-qubit case, just a single rotation to the qubit
             qml.Rot(*params[0], wires=wires[0])
 
+    #print("H",H)
     # find ground state
     cost0 = qml.ExpvalCost(variational_ansatz, H, dev)
 
@@ -62,13 +63,13 @@ def find_excited_states(H):
 
     #print(H.wires)
 
-    for i in range(300):
+    for i in range(400):
         #if i % 10: print(f"step {i}, E_0 {cost0(params)}")
         params = opt.step(cost0, params)  
 
     energies[0] = cost0(params)
     saved_params.append(params)
-    print(energies[0],cost0(params))
+    #print(energies[0],cost0(params))
 
     # function for overlaps
     '''
@@ -93,51 +94,53 @@ def find_excited_states(H):
      
     overlap_state1 = get_state(params)
     overlap_herm1 = np.outer(overlap_state1.conj(), overlap_state1)
-    print(overlap_state1)
+    #print("psi_0",overlap_state1)
     #print(overlap_herm1)
 
 
     # test 
     #print(overlap(params, params))#, dev.wires))
 
-    #opt = qml.RotosolveOptimizer()
-
     # find the first excited
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
-    a = 1e6 # big number to enforce orthogonality
+    a = 2 # big number to enforce orthogonality
     overlap_Ham = qml.Hamiltonian(coeffs=[a,], observables=[qml.Hermitian(overlap_herm1,dev.wires),])
-    print(overlap_Ham)
+    #print("a|psi_0><psi_0",overlap_Ham,overlap_Ham.ops)
     H1 = H + overlap_Ham
+    #print("H1",H1)
     cost = qml.ExpvalCost(variational_ansatz, H1, dev)# + qml.ExpvalCost(variational_ansatz, overlap_Ham, dev)
+    #print(cost(saved_params[0]),a+energies[0],a+cost0(saved_params[0]))
 
-    for i in range(200):
+    for i in range(400):
         #if i % 10: print(f"step {i}, E_1 {cost0(params)}, cost {cost(params)}")
         params = opt.step(cost, params)  
 
     energies[1] = cost0(params)
     saved_params.append(params)
-    print(energies[1],cost(params))
+    #print(energies[1],cost(params))
 
     overlap_state2 = get_state(params)
     overlap_herm2 = np.outer(overlap_state2.conj(), overlap_state2)
-    print(overlap_state2)
+    #print("|psi_1>",overlap_state2)
     #print(overlap_herm2)
 
     # find the second excited    
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
-    b = 1e6
+    b = 2
     overlap_Ham = qml.Hamiltonian(coeffs=[a,b], observables=[qml.Hermitian(overlap_herm1,dev.wires),qml.Hermitian(overlap_herm2,dev.wires)])
-    print(overlap_Ham)
+    #print("a|psi_0><psi_0|+b|psi_1><psi_1",overlap_Ham,overlap_Ham.ops)
     H2 = H + overlap_Ham
+    #print("H2",H2)
     cost = qml.ExpvalCost(variational_ansatz, H2, dev)# + qml.ExpvalCost(variational_ansatz, overlap_Ham, dev)
 
-    for i in range(200):
+    for i in range(400):
         #if i % 10: print(f"step {i}, E_2 {cost0(params)}, cost {cost(params)}")
         params = opt.step(cost, params)  
 
     energies[2] = cost0(params)
     saved_params.append(params)
-    print(energies[2],cost(params))
+    #print(energies[2],cost(params))
+    #assert cost0
 
     # QHACK #
 
