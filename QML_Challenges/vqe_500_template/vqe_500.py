@@ -59,7 +59,7 @@ def find_excited_states(H):
     cost0 = qml.ExpvalCost(variational_ansatz, H, dev)
 
     #opt = qml.GradientDescentOptimizer(0.1)
-    opt = qml.AdamOptimizer()
+    opt = qml.AdamOptimizer(0.1)
 
     #print(H.wires)
 
@@ -72,21 +72,8 @@ def find_excited_states(H):
     #print(energies[0],cost0(params))
 
     # function for overlaps
-    '''
-    @qml.template
-    def va_template(params, wires):
-        variational_ansatz(params, wires)
-
-    @qml.qnode(dev)
-    def overlap(params1, params2):
-        variational_ansatz(params1, dev.wires)
-        qml.inv(va_template(params2, dev.wires))
-        return qml.probs(wires=[0,1,2])
-    '''
     qml.enable_tape()
 
-   
-    #dev2 = qml.device("default.qubit", wires=num_qubits)
     @qml.qnode(dev)
     def get_state(params):
         variational_ansatz(params, dev.wires)
@@ -96,10 +83,6 @@ def find_excited_states(H):
     overlap_herm1 = np.outer(overlap_state1.conj(), overlap_state1)
     #print("psi_0",overlap_state1)
     #print(overlap_herm1)
-
-
-    # test 
-    #print(overlap(params, params))#, dev.wires))
 
     # find the first excited
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
@@ -139,8 +122,6 @@ def find_excited_states(H):
 
     energies[2] = cost0(params)
     saved_params.append(params)
-    #print(energies[2],cost(params))
-    #assert cost0
 
     # QHACK #
 
