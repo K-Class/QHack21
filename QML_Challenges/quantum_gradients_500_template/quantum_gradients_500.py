@@ -46,8 +46,10 @@ def natural_gradient(params):
         return qml.probs(wires=[0,1,2])
         #return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1) @ qml.PauliZ(2))
 
-    met_fn = qml.metric_tensor(qnode)
-    print(met_fn(params))
+    assert np.isclose(circuit(params+np.pi/2*(e[0]+e[1]),params)[0],circuit(params,params+np.pi/2*(e[0]+e[1]))[0])
+
+    #met_fn = qml.metric_tensor(qnode)
+    #print(met_fn(params))
 
     for i in range(6):
         for j in range(6):
@@ -55,12 +57,15 @@ def natural_gradient(params):
             # ? return < shifted | qnode >
     #print(circuit(params+np.pi/2*(e[i]+e[j]),params))
 
-    print(F)
-    quit() 
+    #print((1/8.)*F)
 
     s = np.pi/2
+    gradient = np.zeros(6)
     for i in range(6):
-        gradient = ( qnode(params + s*e[i]) - qnode(params - s*e[i])) / (2*np.sin(s))
+        gradient[i] = ( qnode(params + s*e[i]) - qnode(params - s*e[i])) / (2*np.sin(s))
+    #print(gradient)
+    
+    #quit() 
 
     natural_grad = np.linalg.inv((1/8.)*F)@gradient
 
