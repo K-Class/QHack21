@@ -23,8 +23,8 @@ def find_excited_states(H):
 
     # QHACK #
     num_qubits = len(H.wires)
+    #print(H.wires)
     num_param_sets = (2 ** num_qubits) - 1
-    params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
     saved_params = []
 
     dev = qml.device("default.qubit", wires=num_qubits)
@@ -41,32 +41,63 @@ def find_excited_states(H):
             # Alternating layers of unitary rotations on every qubit followed by a
             # ring cascade of CNOTs.
             for layer_idx in range(n_layers):
-                layer_params = params[layer_idx * n_qubits : layer_idx * n_qubits + n_qubits, :]
-                qml.broadcast(qml.Rot, wires, pattern="single", parameters=layer_params)
-                qml.broadcast(qml.CNOT, wires, pattern="ring")
+                layer_params = params[layer_idx * n_qubits : layer_idx * n_qubits + n_qubits]
+                if layer_idx == 0:
+                  qml.broadcast(qml.RY, wires, pattern="single", parameters=layer_params)
+                else:
+                  qml.broadcast(qml.CNOT, wires, pattern="ring")
+                  qml.broadcast(qml.RY, wires, pattern="single", parameters=layer_params)
 
             # There may be "extra" parameter sets required for which it's not necessarily
             # to perform another full alternating cycle. Apply these to the qubits as needed.
-            extra_params = params[-n_extra_rots:, :]
+            extra_params = params[-n_extra_rots:]
             extra_wires = wires[: n_qubits - 1 - n_extra_rots : -1]
-            qml.broadcast(qml.Rot, extra_wires, pattern="single", parameters=extra_params)
+            extra_wires2 = wires[: n_qubits - 2 - n_extra_rots : -1]
+            #print("ew",extra_wires)
+            #print("test",extra_wires2)
+            if n_qubits > 2:
+                qml.broadcast(qml.CNOT, extra_wires2, pattern="ring")
+            else:
+                qml.broadcast(qml.CNOT, [0,1], pattern='chain')
+            qml.broadcast(qml.RY, extra_wires, pattern="single", parameters=extra_params)
         else:
             # For 1-qubit case, just a single rotation to the qubit
-            qml.Rot(*params[0], wires=wires[0])
+            qml.RY(params[0], wires=wires[0])
+
+    params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets))
+
+    # test
+    #@qml.qnode(dev)
+    #def circuit(params):
+    #    variational_ansatz(params,dev.wires)
+    #    return qml.expval(qml.PauliZ(0))
+    #result = circuit(params)
+    #print(circuit.draw())
+    
+    #coeffs = H.coeffs
+    #ops = H.ops
+
+    #Hmat = np.zeros((2**num_qubits,2**num_qubits))
+    #print(coeffs,ops)
+    #print(ops[0].matrix)
+    #for i in range(len(coeffs)):
+    #    Hmat += coeffs[i] * ops[i].matrix
+    #print(Hmat)
+    #print(np.linalg.eigs(Hmat))
 
     #print("H",H)
     # find ground state
     cost0 = qml.ExpvalCost(variational_ansatz, H, dev)
 
     #opt = qml.GradientDescentOptimizer(0.1)
-    opt = qml.AdamOptimizer(0.2)
+    opt = qml.AdamOptimizer(0.1)
     #opt = qml.AdagradOptimizer(0.1)
 
     #print(H.wires)
 
     min_50 = np.inf
     for i in range(500):
-        if i % 50 == 0: 
+        if i % 25 == 0: 
             if abs(cost0(params)-min_50)<1e-5: break
             min_50 = cost0(params)
             #print(f"step {i}, E_0 {cost0(params)}")
@@ -90,8 +121,8 @@ def find_excited_states(H):
     #print(overlap_herm1)
 
     # find the first excited
-    params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
-    a = 10 # big number to enforce orthogonality
+    params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets))
+    a = 1000 # big number to enforce orthogonality
     overlap_Ham = qml.Hamiltonian(coeffs=[a,], observables=[qml.Hermitian(overlap_herm1,dev.wires),])
     #print("a|psi_0><psi_0",overlap_Ham,overlap_Ham.ops)
     H1 = H + overlap_Ham
@@ -100,11 +131,11 @@ def find_excited_states(H):
     #print(cost(saved_params[0]),a+energies[0],a+cost0(saved_params[0]))
 
     min_50 = np.inf
-    for i in range(500):
-        if i % 50 == 0: 
-            if abs(cost(params)-min_50)<1e-5: break
+    for i in range(1500):
+        if i % 25 == 0: 
+            if abs(cost0(params)-min_50)<1e-5: break
             #print(f"step {i}, E_1 {cost0(params)}, cost {cost(params)}")
-            min_50 = cost(params)
+            min_50 = cost0(params)
         params = opt.step(cost, params)  
 
     energies[1] = cost0(params)
@@ -117,8 +148,8 @@ def find_excited_states(H):
     #print(overlap_herm2)
 
     # find the second excited    
-    params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
-    b = 10
+    params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets))
+    b = 1000
     overlap_Ham = qml.Hamiltonian(coeffs=[a,b], observables=[qml.Hermitian(overlap_herm1,dev.wires),qml.Hermitian(overlap_herm2,dev.wires)])
     #print("a|psi_0><psi_0|+b|psi_1><psi_1",overlap_Ham,overlap_Ham.ops)
     H2 = H + overlap_Ham
@@ -126,11 +157,11 @@ def find_excited_states(H):
     cost = qml.ExpvalCost(variational_ansatz, H2, dev)# + qml.ExpvalCost(variational_ansatz, overlap_Ham, dev)
 
     min_50 = np.inf
-    for i in range(500):
-        if i % 50 == 0: 
-            if abs(cost(params)-min_50)<1e-5: break
+    for i in range(1500):
+        if i % 25 == 0: 
+            if abs(cost0(params)-min_50)<1e-5: break
             #print(f"step {i}, E_2 {cost0(params)}, cost {cost(params)}")
-            min_50 = cost(params)
+            min_50 = cost0(params)
         params = opt.step(cost, params)  
 
     energies[2] = cost0(params)
