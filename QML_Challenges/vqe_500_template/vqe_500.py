@@ -59,13 +59,18 @@ def find_excited_states(H):
     cost0 = qml.ExpvalCost(variational_ansatz, H, dev)
 
     #opt = qml.GradientDescentOptimizer(0.1)
-    opt = qml.AdamOptimizer(0.1)
+    opt = qml.AdamOptimizer(0.2)
+    #opt = qml.AdagradOptimizer(0.1)
 
     #print(H.wires)
 
-    for i in range(400):
-        #if i % 10: print(f"step {i}, E_0 {cost0(params)}")
-        params = opt.step(cost0, params)  
+    min_50 = np.inf
+    for i in range(500):
+        if i % 50 == 0: 
+            if abs(cost0(params)-min_50)<1e-5: break
+            min_50 = cost0(params)
+            #print(f"step {i}, E_0 {cost0(params)}")
+        params = opt.step(cost0, params)
 
     energies[0] = cost0(params)
     saved_params.append(params)
@@ -86,7 +91,7 @@ def find_excited_states(H):
 
     # find the first excited
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
-    a = 2 # big number to enforce orthogonality
+    a = 10 # big number to enforce orthogonality
     overlap_Ham = qml.Hamiltonian(coeffs=[a,], observables=[qml.Hermitian(overlap_herm1,dev.wires),])
     #print("a|psi_0><psi_0",overlap_Ham,overlap_Ham.ops)
     H1 = H + overlap_Ham
@@ -94,8 +99,12 @@ def find_excited_states(H):
     cost = qml.ExpvalCost(variational_ansatz, H1, dev)# + qml.ExpvalCost(variational_ansatz, overlap_Ham, dev)
     #print(cost(saved_params[0]),a+energies[0],a+cost0(saved_params[0]))
 
-    for i in range(400):
-        #if i % 10: print(f"step {i}, E_1 {cost0(params)}, cost {cost(params)}")
+    min_50 = np.inf
+    for i in range(500):
+        if i % 50 == 0: 
+            if abs(cost(params)-min_50)<1e-5: break
+            #print(f"step {i}, E_1 {cost0(params)}, cost {cost(params)}")
+            min_50 = cost(params)
         params = opt.step(cost, params)  
 
     energies[1] = cost0(params)
@@ -109,15 +118,19 @@ def find_excited_states(H):
 
     # find the second excited    
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets, 3))
-    b = 2
+    b = 10
     overlap_Ham = qml.Hamiltonian(coeffs=[a,b], observables=[qml.Hermitian(overlap_herm1,dev.wires),qml.Hermitian(overlap_herm2,dev.wires)])
     #print("a|psi_0><psi_0|+b|psi_1><psi_1",overlap_Ham,overlap_Ham.ops)
     H2 = H + overlap_Ham
     #print("H2",H2)
     cost = qml.ExpvalCost(variational_ansatz, H2, dev)# + qml.ExpvalCost(variational_ansatz, overlap_Ham, dev)
 
-    for i in range(400):
-        #if i % 10: print(f"step {i}, E_2 {cost0(params)}, cost {cost(params)}")
+    min_50 = np.inf
+    for i in range(500):
+        if i % 50 == 0: 
+            if abs(cost(params)-min_50)<1e-5: break
+            #print(f"step {i}, E_2 {cost0(params)}, cost {cost(params)}")
+            min_50 = cost(params)
         params = opt.step(cost, params)  
 
     energies[2] = cost0(params)
