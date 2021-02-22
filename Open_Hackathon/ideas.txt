@@ -1,0 +1,3 @@
+QC-AAN with GBS?
+reinforcement learning (ai gym)
+mitiq for pennylane
