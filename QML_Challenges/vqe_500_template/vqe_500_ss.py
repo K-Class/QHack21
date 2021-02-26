@@ -68,30 +68,41 @@ def find_excited_states(H):
         U(params,wires)
 
     num_param_sets = (2 ** num_qubits) - 1
-    params = np.random.uniform(low=-np.pi / 2, high=np.pi / 2, size=(num_param_sets, 3))
 
     dev = qml.device("default.qubit",wires=num_qubits)
 
     def cost(params):
-        E0 = qml.ExpvalCost(ansatz0,H,dev).__call__(params)
-        E1 = qml.ExpvalCost(ansatz1, 0.5*H, dev).__call__(params)
-        E2 = qml.ExpvalCost(ansatz2, 0.1*H, dev).__call__(params)
+        E0 = qml.ExpvalCost(ansatz0, 3*H, dev).__call__(params)
+        E1 = qml.ExpvalCost(ansatz1, 2*H, dev).__call__(params)
+        E2 = qml.ExpvalCost(ansatz2, 1*H, dev).__call__(params)
         return E0 + E1 + E2
 
     opt = qml.AdamOptimizer(0.1)
     #opt = qml.MomentumOptimizer()
+    #opt = qml.GradientDescentOptimizer(0.1)
 
-    max_iter = 500
-    for i in range(max_iter):
-        if i % 50 == 0: print(f"step {i}, cost {cost(params)}")
-        params = opt.step(cost, params)
+    num_runs = 3
+    max_iter = 400
+    best_tot = np.inf
+    best_energies = np.zeros(3)
+    for j in range(num_runs):
+        current_energies = np.zeros(3)
+        params = np.random.uniform(low=-np.pi / 2, high=np.pi / 2, size=(num_param_sets,3))
+        for i in range(max_iter):
+            if i % 50 == 0: print(f"step {i}, cost {cost(params)}")
+            params = opt.step(cost, params)
 
-    energies[0] = qml.ExpvalCost(ansatz0,H,dev).__call__(params)
-    energies[1] = qml.ExpvalCost(ansatz1,H,dev).__call__(params)
-    energies[2] = qml.ExpvalCost(ansatz2,H,dev).__call__(params)
-
-    energies = np.sort(energies)
-
+        current_energies[0] = qml.ExpvalCost(ansatz0,H,dev).__call__(params)
+        current_energies[1] = qml.ExpvalCost(ansatz1,H,dev).__call__(params)
+        current_energies[2] = qml.ExpvalCost(ansatz2,H,dev).__call__(params)
+        print(current_energies)
+        if (E:=np.sum(current_energies))<best_tot:
+            print(E)
+            best_tot = E
+            best_energies = current_energies
+    
+    energies = np.sort(best_energies)
+    
     # QHACK #
 
     return ",".join([str(E) for E in energies])
