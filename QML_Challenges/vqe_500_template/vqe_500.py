@@ -58,7 +58,7 @@ def find_excited_states(H):
             if n_qubits > 2:
                 qml.broadcast(qml.CNOT, extra_wires2, pattern="ring")
             else:
-                qml.broadcast(qml.CNOT, [0,1], pattern='chain')
+                qml.broadcast(qml.CNOT, [1,0], pattern='chain')
             qml.broadcast(qml.RY, extra_wires, pattern="single", parameters=extra_params)
         else:
             # For 1-qubit case, just a single rotation to the qubit
@@ -98,7 +98,7 @@ def find_excited_states(H):
     min_50 = np.inf
     for i in range(500):
         if i % 25 == 0: 
-            if abs(cost0(params)-min_50)<1e-5: break
+            if abs(cost0(params)-min_50)<1e-4: break
             min_50 = cost0(params)
             #print(f"step {i}, E_0 {cost0(params)}")
         params = opt.step(cost0, params)
@@ -122,7 +122,7 @@ def find_excited_states(H):
 
     # find the first excited
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets))
-    a = 1000 # big number to enforce orthogonality
+    a = 100 # big number to enforce orthogonality
     overlap_Ham = qml.Hamiltonian(coeffs=[a,], observables=[qml.Hermitian(overlap_herm1,dev.wires),])
     #print("a|psi_0><psi_0",overlap_Ham,overlap_Ham.ops)
     H1 = H + overlap_Ham
@@ -133,7 +133,7 @@ def find_excited_states(H):
     min_50 = np.inf
     for i in range(1500):
         if i % 25 == 0: 
-            if abs(cost0(params)-min_50)<1e-5: break
+            if abs(cost0(params)-min_50)<1e-4: break
             #print(f"step {i}, E_1 {cost0(params)}, cost {cost(params)}")
             min_50 = cost0(params)
         params = opt.step(cost, params)  
@@ -149,7 +149,7 @@ def find_excited_states(H):
 
     # find the second excited    
     params = np.random.uniform(low=-np.pi/2, high=np.pi/2, size=(num_param_sets))
-    b = 1000
+    b = 100
     overlap_Ham = qml.Hamiltonian(coeffs=[a,b], observables=[qml.Hermitian(overlap_herm1,dev.wires),qml.Hermitian(overlap_herm2,dev.wires)])
     #print("a|psi_0><psi_0|+b|psi_1><psi_1",overlap_Ham,overlap_Ham.ops)
     H2 = H + overlap_Ham
@@ -159,7 +159,7 @@ def find_excited_states(H):
     min_50 = np.inf
     for i in range(1500):
         if i % 25 == 0: 
-            if abs(cost0(params)-min_50)<1e-5: break
+            if abs(cost0(params)-min_50)<1e-4: break
             #print(f"step {i}, E_2 {cost0(params)}, cost {cost(params)}")
             min_50 = cost0(params)
         params = opt.step(cost, params)  
