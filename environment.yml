@@ -1,0 +1,14 @@
+name: qml
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip
+  - numpy
+  - matplotlib 
+  - jupyter
+  - jupyterlab
+  - pip:
+      - pennylane
+      - pennylane-qiskit
+      - pylatexenc
